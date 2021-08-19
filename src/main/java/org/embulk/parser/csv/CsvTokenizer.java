@@ -26,138 +26,147 @@ import org.embulk.spi.DataException;
 import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
-    public CsvTokenizer(LineDecoder input, CsvParserPlugin.PluginTask task) {
-        String delimiter = task.getDelimiter();
+    public CsvTokenizer(final LineDecoder input, final CsvParserPlugin.PluginTask task) {
+        final String delimiter = task.getDelimiter();
         if (delimiter.length() == 0) {
             throw new ConfigException("Empty delimiter is not allowed");
         } else {
             this.delimiterChar = delimiter.charAt(0);
             if (delimiter.length() > 1) {
-                delimiterFollowingString = delimiter.substring(1);
+                this.delimiterFollowingString = delimiter.substring(1);
             } else {
-                delimiterFollowingString = null;
+                this.delimiterFollowingString = null;
             }
         }
-        quote = task.getQuoteChar().orElse(CsvParserPlugin.QuoteCharacter.noQuote()).getCharacter();
-        escape = task.getEscapeChar().orElse(CsvParserPlugin.EscapeCharacter.noEscape()).getCharacter();
-        newline = task.getNewline().getString();
-        trimIfNotQuoted = task.getTrimIfNotQuoted();
-        quotesInQuotedFields = task.getQuotesInQuotedFields();
-        if (trimIfNotQuoted && quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_ONLY_RFC4180_ESCAPED) {
+        this.quote = task.getQuoteChar().orElse(CsvParserPlugin.QuoteCharacter.noQuote()).getCharacter();
+        this.escape = task.getEscapeChar().orElse(CsvParserPlugin.EscapeCharacter.noEscape()).getCharacter();
+        this.newline = task.getNewline().getString();
+        this.trimIfNotQuoted = task.getTrimIfNotQuoted();
+        this.quotesInQuotedFields = task.getQuotesInQuotedFields();
+        if (this.trimIfNotQuoted && this.quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_ONLY_RFC4180_ESCAPED) {
             // The combination makes some syntax very ambiguous such as:
             //     val1,  \"\"val2\"\"  ,val3
             throw new ConfigException("[quotes_in_quoted_fields != ACCEPT_ONLY_RFC4180_ESCAPED] is not allowed to specify with [trim_if_not_quoted = true]");
         }
-        maxQuotedSizeLimit = task.getMaxQuotedSizeLimit();
-        commentLineMarker = task.getCommentLineMarker().orElse(null);
-        nullStringOrNull = task.getNullString().orElse(null);
+        this.maxQuotedSizeLimit = task.getMaxQuotedSizeLimit();
+        this.commentLineMarker = task.getCommentLineMarker().orElse(null);
+        this.nullStringOrNull = task.getNullString().orElse(null);
+        this.quotedValueLines = new ArrayList<>();
+        this.unreadLines = new ArrayDeque<>();
         this.input = input;
+
+        this.recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
+        this.lineNumber = 0;
+        this.line = null;
+        this.linePos = 0;
+        this.wasQuotedColumn = false;
     }
 
     public static class InvalidFormatException extends DataException {
-        public InvalidFormatException(String message) {
+        public InvalidFormatException(final String message) {
             super(message);
         }
     }
 
     public static class InvalidValueException extends DataException {
-        public InvalidValueException(String message) {
+        public InvalidValueException(final String message) {
             super(message);
         }
     }
 
     public static class QuotedSizeLimitExceededException extends InvalidValueException {
-        public QuotedSizeLimitExceededException(String message) {
+        public QuotedSizeLimitExceededException(final String message) {
             super(message);
         }
     }
 
     public class TooManyColumnsException extends InvalidFormatException {
-        public TooManyColumnsException(String message) {
+        public TooManyColumnsException(final String message) {
             super(message);
         }
     }
 
     public class TooFewColumnsException extends InvalidFormatException {
-        public TooFewColumnsException(String message) {
+        public TooFewColumnsException(final String message) {
             super(message);
         }
     }
 
     public long getCurrentLineNumber() {
-        return lineNumber;
+        return this.lineNumber;
     }
 
     public boolean skipHeaderLine() {
-        boolean skipped = input.poll() != null;
+        final boolean skipped = this.input.poll() != null;
         if (skipped) {
-            lineNumber++;
+            this.lineNumber++;
         }
         return skipped;
     }
 
     // returns skipped line
     public String skipCurrentLine() {
-        String skippedLine;
-        if (quotedValueLines.isEmpty()) {
-            skippedLine = line;
+        final String skippedLine;
+        if (this.quotedValueLines.isEmpty()) {
+            skippedLine = this.line;
         } else {
             // recover lines of quoted value
-            skippedLine = quotedValueLines.remove(0);  // TODO optimize performance
-            unreadLines.addAll(quotedValueLines);
-            lineNumber -= quotedValueLines.size();
-            if (line != null) {
-                unreadLines.add(line);
-                lineNumber -= 1;
+            skippedLine = this.quotedValueLines.remove(0);  // TODO optimize performance
+            this.unreadLines.addAll(this.quotedValueLines);
+            this.lineNumber -= this.quotedValueLines.size();
+            if (this.line != null) {
+                this.unreadLines.add(this.line);
+                this.lineNumber -= 1;
             }
-            quotedValueLines.clear();
+            this.quotedValueLines.clear();
         }
-        recordState = RecordState.END;
+        this.recordState = RecordState.END;
         return skippedLine;
     }
 
     public boolean nextFile() {
-        boolean next = input.nextFile();
+        final boolean next = this.input.nextFile();
         if (next) {
-            lineNumber = 0;
+            this.lineNumber = 0;
         }
         return next;
     }
 
     // used by guess-csv
     public boolean nextRecord() {
-        return nextRecord(true);
+        return this.nextRecord(true);
     }
 
-    public boolean nextRecord(boolean skipEmptyLine) {
+    public boolean nextRecord(final boolean skipEmptyLine) {
         // If at the end of record, read the next line and initialize the state
-        if (recordState != RecordState.END) {
+        if (this.recordState != RecordState.END) {
             throw new TooManyColumnsException("Too many columns");
         }
 
-        boolean hasNext = nextLine(skipEmptyLine);
+        final boolean hasNext = this.nextLine(skipEmptyLine);
         if (hasNext) {
-            recordState = RecordState.NOT_END;
+            this.recordState = RecordState.NOT_END;
             return true;
         } else {
             return false;
         }
     }
 
-    private boolean nextLine(boolean skipEmptyLine) {
+    private boolean nextLine(final boolean skipEmptyLine) {
         while (true) {
-            if (!unreadLines.isEmpty()) {
-                line = unreadLines.removeFirst();
+            if (!this.unreadLines.isEmpty()) {
+                this.line = this.unreadLines.removeFirst();
             } else {
-                line = input.poll();
-                if (line == null) {
+                this.line = this.input.poll();
+                if (this.line == null) {
                     return false;
                 }
             }
-            linePos = 0;
-            lineNumber++;
+            this.linePos = 0;
+            this.lineNumber++;
 
-            boolean skip = skipEmptyLine && (line.isEmpty() || (commentLineMarker != null && line.startsWith(commentLineMarker)));
+            final boolean skip =
+                    skipEmptyLine && (this.line.isEmpty() || (this.commentLineMarker != null && this.line.startsWith(this.commentLineMarker)));
             if (!skip) {
                 return true;
             }
@@ -165,20 +174,20 @@ public class CsvTokenizer {
     }
 
     public boolean hasNextColumn() {
-        return recordState == RecordState.NOT_END;
+        return this.recordState == RecordState.NOT_END;
     }
 
     public String nextColumn() {
-        if (!hasNextColumn()) {
+        if (!this.hasNextColumn()) {
             throw new TooFewColumnsException("Too few columns");
         }
 
         // reset last state
-        wasQuotedColumn = false;
-        quotedValueLines.clear();
+        this.wasQuotedColumn = false;
+        this.quotedValueLines.clear();
 
         // local state
-        int valueStartPos = linePos;
+        int valueStartPos = this.linePos;
         int valueEndPos = 0;  // initialized by VALUE state and used by LAST_TRIM_OR_VALUE and
         StringBuilder quotedValue = null;  // initial by VALUE or FIRST_TRIM state and used by QUOTED_VALUE state
         ColumnState columnState = ColumnState.BEGIN;
@@ -190,27 +199,27 @@ public class CsvTokenizer {
                 case BEGIN:
                     // TODO optimization: state is BEGIN only at the first character of a column.
                     //      this block can be out of the looop.
-                    if (isDelimiter(c)) {
+                    if (this.isDelimiter(c)) {
                         // empty value
-                        if (delimiterFollowingString == null) {
+                        if (this.delimiterFollowingString == null) {
                             return "";
-                        } else if (isDelimiterFollowingFrom(linePos)) {
-                            linePos += delimiterFollowingString.length();
+                        } else if (this.isDelimiterFollowingFrom(this.linePos)) {
+                            this.linePos += this.delimiterFollowingString.length();
                             return "";
                         }
                         // not a delimiter
                     }
-                    if (isEndOfLine(c)) {
+                    if (this.isEndOfLine(c)) {
                         // empty value
-                        recordState = RecordState.END;
+                        this.recordState = RecordState.END;
                         return "";
 
-                    } else if (isSpace(c) && trimIfNotQuoted) {
+                    } else if (this.isSpace(c) && this.trimIfNotQuoted) {
                         columnState = ColumnState.FIRST_TRIM;
 
-                    } else if (isQuote(c)) {
-                        valueStartPos = linePos;  // == 1
-                        wasQuotedColumn = true;
+                    } else if (this.isQuote(c)) {
+                        valueStartPos = this.linePos;  // == 1
+                        this.wasQuotedColumn = true;
                         quotedValue = new StringBuilder();
                         columnState = ColumnState.QUOTED_VALUE;
 
@@ -220,58 +229,58 @@ public class CsvTokenizer {
                     break;
 
                 case FIRST_TRIM:
-                    if (isDelimiter(c)) {
+                    if (this.isDelimiter(c)) {
                         // empty value
-                        if (delimiterFollowingString == null) {
+                        if (this.delimiterFollowingString == null) {
                             return "";
-                        } else if (isDelimiterFollowingFrom(linePos)) {
-                            linePos += delimiterFollowingString.length();
+                        } else if (this.isDelimiterFollowingFrom(this.linePos)) {
+                            this.linePos += this.delimiterFollowingString.length();
                             return "";
                         }
                         // not a delimiter
                     }
-                    if (isEndOfLine(c)) {
+                    if (this.isEndOfLine(c)) {
                         // empty value
-                        recordState = RecordState.END;
+                        this.recordState = RecordState.END;
                         return "";
 
-                    } else if (isQuote(c)) {
+                    } else if (this.isQuote(c)) {
                         // column has heading spaces and quoted. TODO should this be rejected?
-                        valueStartPos = linePos;
-                        wasQuotedColumn = true;
+                        valueStartPos = this.linePos;
+                        this.wasQuotedColumn = true;
                         quotedValue = new StringBuilder();
                         columnState = ColumnState.QUOTED_VALUE;
 
-                    } else if (isSpace(c)) {
+                    } else if (this.isSpace(c)) {
                         // skip this character
 
                     } else {
-                        valueStartPos = linePos - 1;
+                        valueStartPos = this.linePos - 1;
                         columnState = ColumnState.VALUE;
                     }
                     break;
 
                 case VALUE:
-                    if (isDelimiter(c)) {
-                        if (delimiterFollowingString == null) {
-                            return line.substring(valueStartPos, linePos - 1);
-                        } else if (isDelimiterFollowingFrom(linePos)) {
-                            String value = line.substring(valueStartPos, linePos - 1);
-                            linePos += delimiterFollowingString.length();
+                    if (this.isDelimiter(c)) {
+                        if (this.delimiterFollowingString == null) {
+                            return this.line.substring(valueStartPos, this.linePos - 1);
+                        } else if (this.isDelimiterFollowingFrom(this.linePos)) {
+                            final String value = this.line.substring(valueStartPos, this.linePos - 1);
+                            this.linePos += this.delimiterFollowingString.length();
                             return value;
                         }
                         // not a delimiter
                     }
-                    if (isEndOfLine(c)) {
-                        recordState = RecordState.END;
-                        return line.substring(valueStartPos, linePos);
+                    if (this.isEndOfLine(c)) {
+                        this.recordState = RecordState.END;
+                        return this.line.substring(valueStartPos, this.linePos);
 
-                    } else if (isSpace(c) && trimIfNotQuoted) {
-                        valueEndPos = linePos - 1;  // this is possibly end of value
+                    } else if (this.isSpace(c) && this.trimIfNotQuoted) {
+                        valueEndPos = this.linePos - 1;  // this is possibly end of value
                         columnState = ColumnState.LAST_TRIM_OR_VALUE;
 
                     // TODO not implemented yet foo""bar""baz -> [foo, bar, baz].append
-                    //} else if (isQuote(c)) {
+                    //} else if (this.isQuote(c)) {
                     //    // In RFC4180, If fields are not enclosed with double quotes, then
                     //    // double quotes may not appear inside the fields. But they are often
                     //    // included in the fields. We should care about them later.
@@ -282,21 +291,21 @@ public class CsvTokenizer {
                     break;
 
                 case LAST_TRIM_OR_VALUE:
-                    if (isDelimiter(c)) {
-                        if (delimiterFollowingString == null) {
-                            return line.substring(valueStartPos, valueEndPos);
-                        } else if (isDelimiterFollowingFrom(linePos)) {
-                            linePos += delimiterFollowingString.length();
-                            return line.substring(valueStartPos, valueEndPos);
+                    if (this.isDelimiter(c)) {
+                        if (this.delimiterFollowingString == null) {
+                            return this.line.substring(valueStartPos, valueEndPos);
+                        } else if (this.isDelimiterFollowingFrom(this.linePos)) {
+                            this.linePos += this.delimiterFollowingString.length();
+                            return this.line.substring(valueStartPos, valueEndPos);
                         } else {
                             // not a delimiter
                         }
                     }
-                    if (isEndOfLine(c)) {
-                        recordState = RecordState.END;
-                        return line.substring(valueStartPos, valueEndPos);
+                    if (this.isEndOfLine(c)) {
+                        this.recordState = RecordState.END;
+                        return this.line.substring(valueStartPos, valueEndPos);
 
-                    } else if (isSpace(c)) {
+                    } else if (this.isSpace(c)) {
                         // keep LAST_TRIM_OR_VALUE state
 
                     } else {
@@ -306,84 +315,84 @@ public class CsvTokenizer {
                     break;
 
                 case QUOTED_VALUE:
-                    if (isEndOfLine(c)) {
+                    if (this.isEndOfLine(c)) {
                         // multi-line quoted value
-                        quotedValue.append(line.substring(valueStartPos, linePos));
-                        quotedValue.append(newline);
-                        quotedValueLines.add(line);
-                        if (!nextLine(false)) {
+                        quotedValue.append(this.line.substring(valueStartPos, this.linePos));
+                        quotedValue.append(this.newline);
+                        this.quotedValueLines.add(this.line);
+                        if (!this.nextLine(false)) {
                             throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
                         }
                         valueStartPos = 0;
 
-                    } else if (isQuote(c)) {
-                        char next = peekNextChar();
-                        final char nextNext = peekNextNextChar();
-                        if (isQuote(next)
-                                && (quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS
-                                        || (!isDelimiter(nextNext) && !isEndOfLine(nextNext)))) {
+                    } else if (this.isQuote(c)) {
+                        final char next = this.peekNextChar();
+                        final char nextNext = this.peekNextNextChar();
+                        if (this.isQuote(next)
+                                && (this.quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS
+                                        || (!this.isDelimiter(nextNext) && !this.isEndOfLine(nextNext)))) {
                             // Escaped by preceding it with another quote.
                             // A quote just before a delimiter or an end of line is recognized as a functional quote,
                             // not just as a non-escaped stray "quote character" included the field, even if
                             // ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS is specified.
-                            quotedValue.append(line.substring(valueStartPos, linePos));
-                            valueStartPos = ++linePos;
-                        } else if (quotesInQuotedFields == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS
-                                && !(isDelimiter(next) || isEndOfLine(next))) {
+                            quotedValue.append(this.line.substring(valueStartPos, this.linePos));
+                            valueStartPos = ++this.linePos;
+                        } else if (this.quotesInQuotedFields == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS
+                                && !(this.isDelimiter(next) || this.isEndOfLine(next))) {
                             // A non-escaped stray "quote character" in the field is processed as a regular character
                             // if ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS is specified,
-                            if ((linePos - valueStartPos) + quotedValue.length() > maxQuotedSizeLimit) {
-                                throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + maxQuotedSizeLimit + ")");
+                            if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedSizeLimit) {
+                                throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedSizeLimit + ")");
                             }
                         } else {
-                            quotedValue.append(line.substring(valueStartPos, linePos - 1));
+                            quotedValue.append(this.line.substring(valueStartPos, this.linePos - 1));
                             columnState = ColumnState.AFTER_QUOTED_VALUE;
                         }
 
-                    } else if (isEscape(c)) {  // isQuote must be checked first in case of quote == escape
+                    } else if (this.isEscape(c)) {  // isQuote must be checked first in case of this.quote == this.escape
                         // In RFC 4180, CSV's escape char is '\"'. But '\\' is often used.
-                        char next = peekNextChar();
-                        if (isEndOfLine(c)) {
+                        final char next = this.peekNextChar();
+                        if (this.isEndOfLine(c)) {
                             // escape end of line. TODO assuming multi-line quoted value without newline?
-                            quotedValue.append(line.substring(valueStartPos, linePos));
-                            quotedValueLines.add(line);
-                            if (!nextLine(false)) {
+                            quotedValue.append(this.line.substring(valueStartPos, this.linePos));
+                            this.quotedValueLines.add(this.line);
+                            if (!this.nextLine(false)) {
                                 throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
                             }
                             valueStartPos = 0;
-                        } else if (isQuote(next) || isEscape(next)) { // escaped quote
-                            quotedValue.append(line.substring(valueStartPos, linePos - 1));
+                        } else if (this.isQuote(next) || this.isEscape(next)) { // escaped quote
+                            quotedValue.append(this.line.substring(valueStartPos, this.linePos - 1));
                             quotedValue.append(next);
-                            valueStartPos = ++linePos;
+                            valueStartPos = ++this.linePos;
                         }
 
                     } else {
-                        if ((linePos - valueStartPos) + quotedValue.length() > maxQuotedSizeLimit) {
-                            throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + maxQuotedSizeLimit + ")");
+                        if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedSizeLimit) {
+                            throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedSizeLimit + ")");
                         }
                         // keep QUOTED_VALUE state
                     }
                     break;
 
                 case AFTER_QUOTED_VALUE:
-                    if (isDelimiter(c)) {
-                        if (delimiterFollowingString == null) {
+                    if (this.isDelimiter(c)) {
+                        if (this.delimiterFollowingString == null) {
                             return quotedValue.toString();
-                        } else if (isDelimiterFollowingFrom(linePos)) {
-                            linePos += delimiterFollowingString.length();
+                        } else if (this.isDelimiterFollowingFrom(this.linePos)) {
+                            this.linePos += this.delimiterFollowingString.length();
                             return quotedValue.toString();
                         }
                         // not a delimiter
                     }
-                    if (isEndOfLine(c)) {
-                        recordState = RecordState.END;
+                    if (this.isEndOfLine(c)) {
+                        this.recordState = RecordState.END;
                         return quotedValue.toString();
 
-                    } else if (isSpace(c)) {
+                    } else if (this.isSpace(c)) {
                         // column has trailing spaces and quoted. TODO should this be rejected?
 
                     } else {
-                        throw new InvalidValueException(String.format("Unexpected extra character '%c' after a value quoted by '%c'", c, quote));
+                        throw new InvalidValueException(String.format("Unexpected extra character '%c' after a value quoted by '%c'", c, this.quote));
                     }
                     break;
 
@@ -394,10 +403,10 @@ public class CsvTokenizer {
     }
 
     public String nextColumnOrNull() {
-        String v = nextColumn();
-        if (nullStringOrNull == null) {
+        final String v = this.nextColumn();
+        if (this.nullStringOrNull == null) {
             if (v.isEmpty()) {
-                if (wasQuotedColumn) {
+                if (this.wasQuotedColumn) {
                     return "";
                 } else {
                     return null;
@@ -406,7 +415,7 @@ public class CsvTokenizer {
                 return v;
             }
         } else {
-            if (v.equals(nullStringOrNull)) {
+            if (v.equals(this.nullStringOrNull)) {
                 return null;
             } else {
                 return v;
@@ -415,75 +424,75 @@ public class CsvTokenizer {
     }
 
     public boolean wasQuotedColumn() {
-        return wasQuotedColumn;
+        return this.wasQuotedColumn;
     }
 
     private char nextChar() {
-        if (line == null) {
+        if (this.line == null) {
             throw new IllegalStateException("nextColumn is called after end of file");
         }
 
-        if (linePos >= line.length()) {
+        if (this.linePos >= this.line.length()) {
             return END_OF_LINE;
         } else {
-            return line.charAt(linePos++);
+            return this.line.charAt(this.linePos++);
         }
     }
 
     private char peekNextChar() {
-        if (line == null) {
+        if (this.line == null) {
             throw new IllegalStateException("peekNextChar is called after end of file");
         }
 
-        if (linePos >= line.length()) {
+        if (this.linePos >= this.line.length()) {
             return END_OF_LINE;
         } else {
-            return line.charAt(linePos);
+            return this.line.charAt(this.linePos);
         }
     }
 
     private char peekNextNextChar() {
-        if (line == null) {
+        if (this.line == null) {
             throw new IllegalStateException("peekNextNextChar is called after end of file");
         }
 
-        if (linePos + 1 >= line.length()) {
+        if (this.linePos + 1 >= this.line.length()) {
             return END_OF_LINE;
         } else {
-            return line.charAt(linePos + 1);
+            return this.line.charAt(this.linePos + 1);
         }
     }
 
-    private boolean isSpace(char c) {
+    private boolean isSpace(final char c) {
         return c == ' ';
     }
 
-    private boolean isDelimiterFollowingFrom(int pos) {
-        if (line.length() < pos + delimiterFollowingString.length()) {
+    private boolean isDelimiterFollowingFrom(final int pos) {
+        if (this.line.length() < pos + this.delimiterFollowingString.length()) {
             return false;
         }
-        for (int i = 0; i < delimiterFollowingString.length(); i++) {
-            if (delimiterFollowingString.charAt(i) != line.charAt(pos + i)) {
+        for (int i = 0; i < this.delimiterFollowingString.length(); i++) {
+            if (this.delimiterFollowingString.charAt(i) != this.line.charAt(pos + i)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean isDelimiter(char c) {
-        return c == delimiterChar;
+    private boolean isDelimiter(final char c) {
+        return c == this.delimiterChar;
     }
 
-    private boolean isEndOfLine(char c) {
+    private boolean isEndOfLine(final char c) {
         return c == END_OF_LINE;
     }
 
-    private boolean isQuote(char c) {
-        return quote != NO_QUOTE && c == quote;
+    private boolean isQuote(final char c) {
+        return this.quote != NO_QUOTE && c == this.quote;
     }
 
-    private boolean isEscape(char c) {
-        return escape != NO_ESCAPE && c == escape;
+    private boolean isEscape(final char c) {
+        return this.escape != NO_ESCAPE && c == this.escape;
     }
 
     private static enum RecordState {
@@ -510,13 +519,12 @@ public class CsvTokenizer {
     private final String commentLineMarker;
     private final LineDecoder input;
     private final String nullStringOrNull;
+    private final List<String> quotedValueLines;
+    private final Deque<String> unreadLines;
 
-    private RecordState recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
-    private long lineNumber = 0;
-
-    private String line = null;
-    private int linePos = 0;
-    private boolean wasQuotedColumn = false;
-    private List<String> quotedValueLines = new ArrayList<>();
-    private Deque<String> unreadLines = new ArrayDeque<>();
+    private RecordState recordState;
+    private long lineNumber;
+    private String line;
+    private int linePos;
+    private boolean wasQuotedColumn;
 }
