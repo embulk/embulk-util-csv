@@ -26,39 +26,6 @@ import org.embulk.spi.DataException;
 import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
-    static enum RecordState {
-        NOT_END, END,
-    }
-
-    static enum ColumnState {
-        BEGIN, VALUE, QUOTED_VALUE, AFTER_QUOTED_VALUE, FIRST_TRIM, LAST_TRIM_OR_VALUE,
-    }
-
-    private static final char END_OF_LINE = '\0';
-    static final char NO_QUOTE = '\0';
-    static final char NO_ESCAPE = '\0';
-
-    private final char delimiterChar;
-    private final String delimiterFollowingString;
-    private final char quote;
-    private final char escape;
-    private final String newline;
-    private final boolean trimIfNotQuoted;
-    private final QuotesInQuotedFields quotesInQuotedFields;
-    private final long maxQuotedSizeLimit;
-    private final String commentLineMarker;
-    private final LineDecoder input;
-    private final String nullStringOrNull;
-
-    private RecordState recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
-    private long lineNumber = 0;
-
-    private String line = null;
-    private int linePos = 0;
-    private boolean wasQuotedColumn = false;
-    private List<String> quotedValueLines = new ArrayList<>();
-    private Deque<String> unreadLines = new ArrayDeque<>();
-
     public CsvTokenizer(LineDecoder input, CsvParserPlugin.PluginTask task) {
         String delimiter = task.getDelimiter();
         if (delimiter.length() == 0) {
@@ -85,6 +52,36 @@ public class CsvTokenizer {
         commentLineMarker = task.getCommentLineMarker().orElse(null);
         nullStringOrNull = task.getNullString().orElse(null);
         this.input = input;
+    }
+
+    public static class InvalidFormatException extends DataException {
+        public InvalidFormatException(String message) {
+            super(message);
+        }
+    }
+
+    public static class InvalidValueException extends DataException {
+        public InvalidValueException(String message) {
+            super(message);
+        }
+    }
+
+    public static class QuotedSizeLimitExceededException extends InvalidValueException {
+        public QuotedSizeLimitExceededException(String message) {
+            super(message);
+        }
+    }
+
+    public class TooManyColumnsException extends InvalidFormatException {
+        public TooManyColumnsException(String message) {
+            super(message);
+        }
+    }
+
+    public class TooFewColumnsException extends InvalidFormatException {
+        public TooFewColumnsException(String message) {
+            super(message);
+        }
     }
 
     public long getCurrentLineNumber() {
@@ -489,33 +486,37 @@ public class CsvTokenizer {
         return escape != NO_ESCAPE && c == escape;
     }
 
-    public static class InvalidFormatException extends DataException {
-        public InvalidFormatException(String message) {
-            super(message);
-        }
+    private static enum RecordState {
+        NOT_END, END,
     }
 
-    public static class InvalidValueException extends DataException {
-        public InvalidValueException(String message) {
-            super(message);
-        }
+    private static enum ColumnState {
+        BEGIN, VALUE, QUOTED_VALUE, AFTER_QUOTED_VALUE, FIRST_TRIM, LAST_TRIM_OR_VALUE,
     }
 
-    public static class QuotedSizeLimitExceededException extends InvalidValueException {
-        public QuotedSizeLimitExceededException(String message) {
-            super(message);
-        }
-    }
+    static final char NO_QUOTE = '\0';
+    static final char NO_ESCAPE = '\0';
 
-    public class TooManyColumnsException extends InvalidFormatException {
-        public TooManyColumnsException(String message) {
-            super(message);
-        }
-    }
+    private static final char END_OF_LINE = '\0';
 
-    public class TooFewColumnsException extends InvalidFormatException {
-        public TooFewColumnsException(String message) {
-            super(message);
-        }
-    }
+    private final char delimiterChar;
+    private final String delimiterFollowingString;
+    private final char quote;
+    private final char escape;
+    private final String newline;
+    private final boolean trimIfNotQuoted;
+    private final QuotesInQuotedFields quotesInQuotedFields;
+    private final long maxQuotedSizeLimit;
+    private final String commentLineMarker;
+    private final LineDecoder input;
+    private final String nullStringOrNull;
+
+    private RecordState recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
+    private long lineNumber = 0;
+
+    private String line = null;
+    private int linePos = 0;
+    private boolean wasQuotedColumn = false;
+    private List<String> quotedValueLines = new ArrayList<>();
+    private Deque<String> unreadLines = new ArrayDeque<>();
 }
