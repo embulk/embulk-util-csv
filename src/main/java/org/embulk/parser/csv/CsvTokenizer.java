@@ -19,6 +19,7 @@ package org.embulk.parser.csv;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.embulk.spi.DataException;
@@ -51,6 +52,7 @@ public class CsvTokenizer {
         this.quotedValueLines = new ArrayList<>();
         this.unreadLines = new ArrayDeque<>();
         this.input = input;
+        this.iterator = input.iterator();
 
         this.recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
         this.lineNumber = 0;
@@ -221,11 +223,12 @@ public class CsvTokenizer {
     }
 
     public boolean skipHeaderLine() {
-        final boolean skipped = this.input.poll() != null;
-        if (skipped) {
-            this.lineNumber++;
+        if (!this.iterator.hasNext()) {
+            return false;
         }
-        return skipped;
+        this.iterator.next();
+        this.lineNumber++;
+        return true;
     }
 
     // returns skipped line
@@ -281,10 +284,10 @@ public class CsvTokenizer {
             if (!this.unreadLines.isEmpty()) {
                 this.line = this.unreadLines.removeFirst();
             } else {
-                this.line = this.input.poll();
-                if (this.line == null) {
+                if (!this.iterator.hasNext()) {
                     return false;
                 }
+                this.line = this.iterator.next();
             }
             this.linePos = 0;
             this.lineNumber++;
@@ -670,6 +673,8 @@ public class CsvTokenizer {
     static final char NO_ESCAPE = '\0';
 
     private static final char END_OF_LINE = '\0';
+
+    private final Iterator<String> iterator;
 
     private final char delimiterChar;
     private final String delimiterFollowingString;
