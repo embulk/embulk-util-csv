@@ -34,7 +34,6 @@ java {
 dependencies {
     compileOnly "org.embulk:embulk-api:0.10.32"
 
-    api "org.embulk:embulk-util-file:0.1.3"
     api "org.embulk:embulk-util-text:0.1.1"
 
     testImplementation "junit:junit:4.12"
