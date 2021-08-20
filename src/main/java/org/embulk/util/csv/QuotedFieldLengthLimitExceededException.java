@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
-public final class RecordHasUnexpectedRemainingColumnException extends Exception {
-    public RecordHasUnexpectedRemainingColumnException() {
-        super("CsvTokenizer is requested to move to the next record while the current record has unexpected remaining column(s).");
+public final class QuotedFieldLengthLimitExceededException extends Exception {
+    public QuotedFieldLengthLimitExceededException(final long limit) {
+        super("CsvTokenizer observed a quoted field whose length is longer than " + limit + ".");
+        this.limit = limit;
     }
+
+    long getLimit() {
+        return this.limit;
+    }
+
+    private final long limit;
 }

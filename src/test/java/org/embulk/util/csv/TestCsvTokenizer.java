@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.embulk.spi.Buffer;
-import org.embulk.spi.BufferImpl;
 import org.embulk.spi.Column;
 import org.embulk.spi.FileInput;
 import org.embulk.util.file.ListFileInput;
@@ -45,7 +44,7 @@ public class TestCsvTokenizer {
         List<Buffer> buffers = new ArrayList<>();
         for (String line : lines) {
             byte[] buffer = (line + newline).getBytes(StandardCharsets.UTF_8);
-            buffers.add(BufferImpl.wrap(buffer));
+            buffers.add(MockBuffer.copyOf(buffer));
         }
         return new ListFileInput(Arrays.asList(buffers));
     }
@@ -53,7 +52,7 @@ public class TestCsvTokenizer {
     private static FileInput newFileInputFromText(final String newline, final String text) {
         return new ListFileInput(
                 Arrays.asList(Arrays.asList(
-                        BufferImpl.wrap(text.getBytes(StandardCharsets.UTF_8)))));
+                        MockBuffer.copyOf(text.getBytes(StandardCharsets.UTF_8)))));
     }
 
     private static List<List<String>> parse(final CsvTokenizer.Builder builder, final String newline, final int columns, final String... lines)
