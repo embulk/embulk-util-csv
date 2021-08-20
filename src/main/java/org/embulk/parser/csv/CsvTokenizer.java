@@ -23,11 +23,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.embulk.spi.DataException;
-import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
     private CsvTokenizer(
-            final LineDecoder input,
+            final Iterator<String> iterator,
             final char delimiterChar,
             final String delimiterFollowingString,
             final char quote,
@@ -51,8 +50,7 @@ public class CsvTokenizer {
 
         this.quotedValueLines = new ArrayList<>();
         this.unreadLines = new ArrayDeque<>();
-        this.input = input;
-        this.iterator = input.iterator();
+        this.iterator = iterator;
 
         this.recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
         this.lineNumber = 0;
@@ -145,7 +143,7 @@ public class CsvTokenizer {
             return this;
         }
 
-        public CsvTokenizer build(final LineDecoder input) {
+        public CsvTokenizer build(final Iterator<String> iterator) {
             if (this.trimIfNotQuoted && this.quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_ONLY_RFC4180_ESCAPED) {
                 // The combination makes some syntax very ambiguous such as:
                 //     val1,  \"\"val2\"\"  ,val3
@@ -153,7 +151,7 @@ public class CsvTokenizer {
                         "[quotes_in_quoted_fields != ACCEPT_ONLY_RFC4180_ESCAPED] is not allowed to specify with [trim_if_not_quoted = true]");
             }
             return new CsvTokenizer(
-                    input,
+                    iterator,
                     delimiterChar,
                     delimiterFollowingString,
                     quote,
@@ -249,14 +247,6 @@ public class CsvTokenizer {
         }
         this.recordState = RecordState.END;
         return skippedLine;
-    }
-
-    public boolean nextFile() {
-        final boolean next = this.input.nextFile();
-        if (next) {
-            this.lineNumber = 0;
-        }
-        return next;
     }
 
     // used by guess-csv
@@ -685,7 +675,6 @@ public class CsvTokenizer {
     private final QuotesInQuotedFields quotesInQuotedFields;
     private final long maxQuotedFieldLength;
     private final String commentLineMarker;
-    private final LineDecoder input;
     private final String nullString;
 
     private final List<String> quotedValueLines;

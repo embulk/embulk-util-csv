@@ -46,14 +46,13 @@ public class TestWithRealFiles {
         final LineDecoder input = LineDecoder.of(
                 new ResourceFileInput("test_simple.csv"), StandardCharsets.UTF_8, LineDelimiter.LF);
 
-        final CsvTokenizer tokenizer = CsvTokenizer.builder(",")
+        final CsvTokenizer.Builder tokenizerBuilder = CsvTokenizer.builder(",")
                 .setNewline("\n")
                 .setQuote('\"')
                 .setEscape('\"')
-                .setNullString("NULL")
-                .build(input);
+                .setNullString("NULL");
 
-        final List<List<String>> actualRecords = tokenizeAll(tokenizer);
+        final List<List<String>> actualRecords = tokenizeAll(tokenizerBuilder, input);
 
         final List<List<String>> expectedRecords = Arrays.asList(
                 Arrays.asList("id", "account", "time", "purchase", "comment"),
@@ -70,14 +69,13 @@ public class TestWithRealFiles {
         final LineDecoder input = LineDecoder.of(
                 new ResourceFileInput("test_sample_buffer_bytes.csv"), StandardCharsets.UTF_8, LineDelimiter.LF);
 
-        final CsvTokenizer tokenizer = CsvTokenizer.builder(",")
+        final CsvTokenizer.Builder tokenizerBuilder = CsvTokenizer.builder(",")
                 .setNewline("\n")
                 .setQuote('\"')
                 .setEscape('\"')
-                .setNullString("NULL")
-                .build(input);
+                .setNullString("NULL");
 
-        final List<List<String>> actualRecords = tokenizeAll(tokenizer);
+        final List<List<String>> actualRecords = tokenizeAll(tokenizerBuilder, input);
 
         final List<List<String>> expectedRecords = Arrays.asList(
                 Arrays.asList("id", "account", "time", "purchase", "comment"),
@@ -89,10 +87,11 @@ public class TestWithRealFiles {
         assertEquals(expectedRecords, actualRecords);
     }
 
-    private static List<List<String>> tokenizeAll(final CsvTokenizer tokenizer)
+    private static List<List<String>> tokenizeAll(final CsvTokenizer.Builder tokenizerBuilder, final LineDecoder input)
             throws QuotedFieldLengthLimitExceededException, RecordDoesNotHaveExpectedColumnException, RecordHasUnexpectedRemainingColumnException, UnexpectedCharacterAfterQuoteException, UnexpectedEndOfLineInQuotedFieldException {
         final ArrayList<List<String>> records = new ArrayList<>();
-        while (tokenizer.nextFile()) {
+        while (input.nextFile()) {
+            final CsvTokenizer tokenizer = tokenizerBuilder.build(input.iterator());
             if (!tokenizer.nextRecord()) {
                 // empty file
                 continue;
