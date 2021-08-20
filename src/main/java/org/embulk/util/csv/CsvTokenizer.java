@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.embulk.spi.DataException;
 import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
@@ -179,41 +178,6 @@ public class CsvTokenizer {
 
     public static Builder builder(final String delimiter) {
         return new Builder(delimiter);
-    }
-
-    @Deprecated
-    public static class InvalidFormatException extends DataException {
-        public InvalidFormatException(final String message, final Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    @Deprecated
-    public static class InvalidValueException extends DataException {
-        public InvalidValueException(final String message, final Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    @Deprecated
-    public static class QuotedSizeLimitExceededException extends InvalidValueException {
-        public QuotedSizeLimitExceededException(final QuotedFieldLengthLimitExceededException cause) {
-            super("The size of the quoted value exceeds the limit size (" + cause.getLimit() + ").", cause);
-        }
-    }
-
-    @Deprecated
-    public class TooManyColumnsException extends InvalidFormatException {
-        public TooManyColumnsException(final RecordHasUnexpectedRemainingColumnException cause) {
-            super("Too many columns", cause);
-        }
-    }
-
-    @Deprecated
-    public class TooFewColumnsException extends InvalidFormatException {
-        public TooFewColumnsException(final RecordDoesNotHaveExpectedColumnException cause) {
-            super("Too few columns", cause);
-        }
     }
 
     public long getCurrentLineNumber() {
@@ -551,14 +515,6 @@ public class CsvTokenizer {
 
     public boolean wasQuotedColumn() {
         return this.wasQuotedColumn;
-    }
-
-    TooManyColumnsException newTooManyColumnsException(final RecordHasUnexpectedRemainingColumnException ex) {
-        return new TooManyColumnsException(ex);
-    }
-
-    TooFewColumnsException newTooFewColumnsException(final RecordDoesNotHaveExpectedColumnException ex) {
-        return new TooFewColumnsException(ex);
     }
 
     private char nextChar() {

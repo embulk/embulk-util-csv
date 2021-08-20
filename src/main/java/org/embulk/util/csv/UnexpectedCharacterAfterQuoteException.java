@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
-public final class QuotedFieldLengthLimitExceededException extends Exception {
-    public QuotedFieldLengthLimitExceededException(final long limit) {
-        super("CsvTokenizer observed a quoted field whose length is longer than " + limit + ".");
-        this.limit = limit;
+public final class UnexpectedCharacterAfterQuoteException extends Exception {
+    public UnexpectedCharacterAfterQuoteException(final char unexpected, final char quote) {
+        super(String.format("CsvTokenizer reached at an unexpected extra character '%c' after a quoted field by '%c'", unexpected, quote));
+        this.unexpected = unexpected;
+        this.quote = quote;
     }
 
-    long getLimit() {
-        return this.limit;
+    char getUnexpected() {
+        return this.unexpected;
     }
 
-    private final long limit;
+    char getQuote() {
+        return this.quote;
+    }
+
+    private final char unexpected;
+    private final char quote;
 }
