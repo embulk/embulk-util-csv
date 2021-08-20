@@ -14,23 +14,10 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
-public final class UnexpectedCharacterAfterQuoteException extends Exception {
-    public UnexpectedCharacterAfterQuoteException(final char unexpected, final char quote) {
-        super(String.format("CsvTokenizer reached at an unexpected extra character '%c' after a quoted field by '%c'", unexpected, quote));
-        this.unexpected = unexpected;
-        this.quote = quote;
+public final class RecordHasUnexpectedRemainingColumnException extends Exception {
+    public RecordHasUnexpectedRemainingColumnException() {
+        super("CsvTokenizer is requested to move to the next record while the current record has unexpected remaining column(s).");
     }
-
-    char getUnexpected() {
-        return this.unexpected;
-    }
-
-    char getQuote() {
-        return this.quote;
-    }
-
-    private final char unexpected;
-    private final char quote;
 }
