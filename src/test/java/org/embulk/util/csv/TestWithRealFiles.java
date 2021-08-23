@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.embulk.standards.preview;
+package org.embulk.util.csv;
 
 import static org.embulk.test.EmbulkTests.copyResource;
 import static org.embulk.test.EmbulkTests.readFile;
@@ -40,9 +40,7 @@ import org.embulk.test.TestingEmbulk;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class TestFilePreview {
-    private static final String RESOURCE_NAME_PREFIX = "org/embulk/standards/preview/file/test/";
-
+public class TestWithRealFiles {
     private static final EmbulkSystemProperties EMBULK_SYSTEM_PROPERTIES;
 
     static {
@@ -84,20 +82,20 @@ public class TestFilePreview {
         Path outputPath = embulk.createTempFile("csv");
 
         // in: config
-        copyResource(RESOURCE_NAME_PREFIX + sourceCsvResourceName, inputPath);
-        ConfigSource load = embulk.loadYamlResource(RESOURCE_NAME_PREFIX + loadYamlResourceName)
+        copyResource(sourceCsvResourceName, inputPath);
+        ConfigSource load = embulk.loadYamlResource(loadYamlResourceName)
                 .set("path_prefix", inputPath.toAbsolutePath().toString());
 
         // exec: config
         final TestingEmbulk.InputBuilder builder = embulk.inputBuilder();
         if (execYamlResourceName != null) {
-            final ConfigSource execConfig = embulk.loadYamlResource(RESOURCE_NAME_PREFIX + execYamlResourceName);
+            final ConfigSource execConfig = embulk.loadYamlResource(execYamlResourceName);
             builder.exec(execConfig);
         }
 
         // execute preview
         final PreviewResult result = builder.in(load).outputPath(outputPath).preview();
 
-        assertThat(readFile(outputPath), is(readResource(RESOURCE_NAME_PREFIX + resultCsvResourceName)));
+        assertThat(readFile(outputPath), is(readResource(resultCsvResourceName)));
     }
 }
