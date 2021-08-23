@@ -332,9 +332,13 @@ public class CsvParserPlugin implements ParserPlugin {
                     }
                 }
 
-                if (!tokenizer.nextRecord()) {
-                    // empty file
-                    continue;
+                try {
+                    if (!tokenizer.nextRecord()) {
+                        // empty file
+                        continue;
+                    }
+                } catch (final RecordHasUnexpectedRemainingColumnException ex) {
+                    throw tokenizer.newTooManyColumnsException(ex);
                 }
 
                 while (true) {
@@ -423,20 +427,39 @@ public class CsvParserPlugin implements ParserPlugin {
                                         // TODO warning
                                         return null;
                                     }
-                                    return tokenizer.nextColumnOrNull();
+                                    try {
+                                        return tokenizer.nextColumnOrNull();
+                                    } catch (final QuotedFieldLengthLimitExceededException ex) {
+                                        throw new CsvTokenizer.QuotedSizeLimitExceededException(ex);
+                                    } catch (final RecordDoesNotHaveExpectedColumnException ex) {
+                                        throw tokenizer.newTooFewColumnsException(ex);
+                                    } catch (final RecordHasUnexpectedRemainingColumnException ex) {
+                                        throw tokenizer.newTooManyColumnsException(ex);
+                                    } catch (final UnexpectedCharacterAfterQuoteException ex) {
+                                        throw new CsvTokenizer.InvalidValueException(String.format(
+                                                "Unexpected extra character '%c' after a value quoted by '%c'",
+                                                ex.getUnexpected(),
+                                                ex.getQuote()), ex);
+                                    } catch (final UnexpectedEndOfLineInQuotedFieldException ex) {
+                                        throw new CsvTokenizer.InvalidValueException("Unexpected end of line during parsing a quoted value", ex);
+                                    }
                                 }
                             });
 
                         try {
                             hasNextRecord = tokenizer.nextRecord();
-                        } catch (CsvTokenizer.TooManyColumnsException ex) {
+                        } catch (final RecordHasUnexpectedRemainingColumnException ex) {
                             if (allowExtraColumns) {
                                 String tooManyColumnsLine = tokenizer.skipCurrentLine();
                                 // TODO warning
-                                hasNextRecord = tokenizer.nextRecord();
+                                try {
+                                    hasNextRecord = tokenizer.nextRecord();
+                                } catch (final RecordHasUnexpectedRemainingColumnException ex2) {
+                                    throw tokenizer.newTooManyColumnsException(ex2);
+                                }
                             } else {
                                 // this line will be skipped at the following catch section
-                                throw ex;
+                                throw tokenizer.newTooManyColumnsException(ex);
                             }
                         }
                         pageBuilder.addRecord();
@@ -450,7 +473,11 @@ public class CsvParserPlugin implements ParserPlugin {
                         logger.warn(String.format("Skipped line %s:%d (%s): %s", fileName, lineNumber, e.getMessage(), skippedLine));
                         //exec.notice().skippedLine(skippedLine);
 
-                        hasNextRecord = tokenizer.nextRecord();
+                        try {
+                            hasNextRecord = tokenizer.nextRecord();
+                        } catch (final RecordHasUnexpectedRemainingColumnException ex) {
+                            throw tokenizer.newTooManyColumnsException(ex);
+                        }
                     }
 
                     if (!hasNextRecord) {

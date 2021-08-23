@@ -80,11 +80,13 @@ public class TestCsvTokenizer {
                         BufferImpl.wrap(text.getBytes(task.getCharset())))));
     }
 
-    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, String... lines) {
+    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, String... lines)
+            throws QuotedFieldLengthLimitExceededException, RecordDoesNotHaveExpectedColumnException, RecordHasUnexpectedRemainingColumnException, UnexpectedCharacterAfterQuoteException, UnexpectedEndOfLineInQuotedFieldException {
         return parse(task, newFileInputFromLines(task, lines));
     }
 
-    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, FileInput input) {
+    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, FileInput input)
+            throws QuotedFieldLengthLimitExceededException, RecordDoesNotHaveExpectedColumnException, RecordHasUnexpectedRemainingColumnException, UnexpectedCharacterAfterQuoteException, UnexpectedEndOfLineInQuotedFieldException {
         LineDecoder decoder = LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null));
         CsvTokenizer tokenizer = new CsvTokenizer(decoder, task);
         Schema schema = task.getSchemaConfig().toSchema();
@@ -321,8 +323,8 @@ public class TestCsvTokenizer {
             parse(task, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof CsvTokenizer.InvalidValueException);
-            assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
+            assertTrue(e instanceof UnexpectedCharacterAfterQuoteException);
+            assertEquals("CsvTokenizer reached at an unexpected extra character 'b' after a quoted field by '\"'", e.getMessage());
             return;
         }
     }
@@ -336,8 +338,8 @@ public class TestCsvTokenizer {
             parse(task, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof CsvTokenizer.InvalidValueException);
-            assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
+            assertTrue(e instanceof UnexpectedCharacterAfterQuoteException);
+            assertEquals("CsvTokenizer reached at an unexpected extra character 'b' after a quoted field by '\"'", e.getMessage());
             return;
         }
     }
@@ -370,7 +372,7 @@ public class TestCsvTokenizer {
                     "v3,\"0123456789\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof CsvTokenizer.QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
 
         // multi-line
@@ -380,7 +382,7 @@ public class TestCsvTokenizer {
                     "\"012345\n6789\",v3");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof CsvTokenizer.QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
     }
 
@@ -412,7 +414,7 @@ public class TestCsvTokenizer {
             tokenizer.nextColumn();
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof CsvTokenizer.QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
         assertEquals("v3,\"0123", tokenizer.skipCurrentLine());
 

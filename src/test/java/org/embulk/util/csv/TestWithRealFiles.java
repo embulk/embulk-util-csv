@@ -32,6 +32,11 @@ import java.util.List;
 import org.embulk.config.ConfigSource;
 import org.embulk.parser.csv.CsvParserPlugin;
 import org.embulk.parser.csv.CsvTokenizer;
+import org.embulk.parser.csv.QuotedFieldLengthLimitExceededException;
+import org.embulk.parser.csv.RecordDoesNotHaveExpectedColumnException;
+import org.embulk.parser.csv.RecordHasUnexpectedRemainingColumnException;
+import org.embulk.parser.csv.UnexpectedCharacterAfterQuoteException;
+import org.embulk.parser.csv.UnexpectedEndOfLineInQuotedFieldException;
 import org.embulk.spi.Buffer;
 import org.embulk.spi.FileInput;
 import org.embulk.util.config.ConfigMapperFactory;
@@ -142,7 +147,8 @@ public class TestWithRealFiles {
         assertEquals(expectedRecords, actualRecords);
     }
 
-    private static List<List<String>> tokenizeAll(final CsvTokenizer tokenizer) {
+    private static List<List<String>> tokenizeAll(final CsvTokenizer tokenizer)
+            throws QuotedFieldLengthLimitExceededException, RecordDoesNotHaveExpectedColumnException, RecordHasUnexpectedRemainingColumnException, UnexpectedCharacterAfterQuoteException, UnexpectedEndOfLineInQuotedFieldException {
         final ArrayList<List<String>> records = new ArrayList<>();
         while (tokenizer.nextFile()) {
             if (!tokenizer.nextRecord()) {
@@ -162,11 +168,11 @@ public class TestWithRealFiles {
 
                     try {
                         hasNextRecord = tokenizer.nextRecord();
-                    } catch (final CsvTokenizer.TooManyColumnsException ex) {
+                    } catch (final RecordHasUnexpectedRemainingColumnException ex) {
                         throw ex;
                     }
                     records.add(Collections.unmodifiableList(record));
-                } catch (final CsvTokenizer.InvalidFormatException | CsvTokenizer.InvalidValueException ex) {
+                } catch (final RecordDoesNotHaveExpectedColumnException | RecordHasUnexpectedRemainingColumnException ex) {
                     throw ex;
                 }
 
