@@ -34,15 +34,6 @@ dependencies {
     testImplementation "org.embulk:embulk-core:0.10.33"
     testImplementation "org.embulk:embulk-deps:0.10.33"
     testImplementation "org.embulk:embulk-junit4:0.10.33"
-
-    testImplementation project(":embulk-formatter-csv")
-    testImplementation project(":embulk-input-file")
-    testImplementation project(":embulk-output-file")
-    testImplementation project(":embulk-parser-csv")
-    testImplementation project(":embulk-guess-bzip2")
-    testImplementation project(":embulk-guess-csv")
-    testImplementation project(":embulk-guess-gzip")
-    testImplementation project(":embulk-guess-json")
 }
 
 embulkPlugin {
