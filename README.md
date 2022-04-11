@@ -1,8 +1,7 @@
-# embulk-standards: Embulk's standard plugins
+embulk-util-csv
+================
 
-These are Embulk's "standard" plugins which are embedded in Embulk's executable binary distributions.
-
-Their source code had been managed in the same [main repository of Embulk](https://github.com/embulk/embulk) until [`v0.10.33`](https://github.com/embulk/embulk/tree/v0.10.33). They have been split from the main repository since `v0.10.34`.
+This is a tokenizer of the CSV (comma-separated values) format extracted as a standalone library from [`embulk-parser-csv`](https://github.com/embulk/embulk-standards).
 
 ### Release
 
