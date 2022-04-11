@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
 public abstract class InvalidCsvFormatException extends RuntimeException {
     public InvalidCsvFormatException(final String message) {

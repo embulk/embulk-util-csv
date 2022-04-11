@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
 public abstract class InvalidCsvQuotationException extends InvalidCsvFormatException {
     public InvalidCsvQuotationException(final String message) {

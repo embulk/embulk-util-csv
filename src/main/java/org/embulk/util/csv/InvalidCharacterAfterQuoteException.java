@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.embulk.parser.csv;
+package org.embulk.util.csv;
 
 public class InvalidCharacterAfterQuoteException extends InvalidCsvQuotationException {
     public InvalidCharacterAfterQuoteException(final char extraChar, final char quoteChar) {
