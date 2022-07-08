@@ -16,7 +16,15 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} encounters a quoted field which is too long.
+ */
 public class QuotedFieldLengthLimitExceededException extends InvalidCsvQuotationException {
+    /**
+     * Constructs a {@link QuotedFieldLengthLimitExceededException} with its default message.
+     *
+     * @param quotedFieldLengthLimit  the limit of a quoted field length
+     */
     public QuotedFieldLengthLimitExceededException(final long quotedFieldLengthLimit) {
         super("The length of the quoted field exceeds the limit (" + quotedFieldLengthLimit + ")");
         this.quotedFieldLengthLimit = quotedFieldLengthLimit;

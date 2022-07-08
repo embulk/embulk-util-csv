@@ -16,7 +16,15 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} encounters an invalid format while parsing a quoted field.
+ */
 public abstract class InvalidCsvQuotationException extends InvalidCsvFormatException {
+    /**
+     * Constructs an {@link InvalidCsvQuotationException} with the specified detail message.
+     *
+     * @param message  the detail message
+     */
     public InvalidCsvQuotationException(final String message) {
         super(message);
     }

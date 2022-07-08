@@ -16,7 +16,13 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} encounters an end-of-file while parsing a quoted field.
+ */
 public class EndOfFileInQuotedFieldException extends InvalidCsvQuotationException {
+    /**
+     * Constructs an {@link EndOfFileInQuotedFieldException} with its default message.
+     */
     public EndOfFileInQuotedFieldException() {
         super("Unexpected end of file in a quoted field.");
     }

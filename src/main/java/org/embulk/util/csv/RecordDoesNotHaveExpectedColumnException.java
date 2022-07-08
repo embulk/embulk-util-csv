@@ -16,7 +16,13 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} is not able to find an expected column (i.e. too few columns).
+ */
 public class RecordDoesNotHaveExpectedColumnException extends InvalidCsvFormatException {
+    /**
+     * Constructs a {@link RecordDoesNotHaveExpectedColumnException} with its default message.
+     */
     public RecordDoesNotHaveExpectedColumnException() {
         super("A record does not have an expected column (i.e. too few columns).");
     }

@@ -16,7 +16,15 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} encounters an invalid format.
+ */
 public abstract class InvalidCsvFormatException extends RuntimeException {
+    /**
+     * Constructs an {@link InvalidCsvFormatException} with the specified detail message.
+     *
+     * @param message  the detail message
+     */
     public InvalidCsvFormatException(final String message) {
         super(message);
     }
