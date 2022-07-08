@@ -16,7 +16,16 @@
 
 package org.embulk.util.csv;
 
+/**
+ * Thrown when {@link CsvTokenizer} encounters an unexpected character after parsing a quoted field.
+ */
 public class InvalidCharacterAfterQuoteException extends InvalidCsvQuotationException {
+    /**
+     * Constructs an {@link InvalidCharacterAfterQuoteException} with its default message.
+     *
+     * @param extraChar  the unexpected character after a quoted field
+     * @param quoteChar  the quote character
+     */
     public InvalidCharacterAfterQuoteException(final char extraChar, final char quoteChar) {
         super(String.format("Unexpected extra character '%c' after a quote by '%c'.", extraChar, quoteChar));
         this.extraChar = extraChar;

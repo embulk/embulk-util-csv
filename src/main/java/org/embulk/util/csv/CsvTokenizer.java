@@ -23,6 +23,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Tokenizes iteration of strings as comma-separated values (CSV) into columns in rows.
+ *
+ * <p>Note that this tokenizer is implemented to consume {@code Iterator<String>} iteratively,
+ * and to return columns one-by-one by {@link #nextColumn} or {@link #nextColumnOrNull}.
+ */
 public class CsvTokenizer {
     private CsvTokenizer(
             final Iterator<String> iterator,
@@ -58,6 +64,9 @@ public class CsvTokenizer {
         this.wasQuotedColumn = false;
     }
 
+    /**
+     * A builder of {@link CsvTokenizer}.
+     */
     public static class Builder {
         private Builder(final String delimiter) {
             if (delimiter == null) {
@@ -84,26 +93,56 @@ public class CsvTokenizer {
             this.nullString = null;
         }
 
+        /**
+         * Enables quoting, and sets a character for quoting.
+         *
+         * @param quote  a character for quoting
+         * @return this builder
+         */
         public Builder setQuote(final char quote) {
             this.quote = quote;
             return this;
         }
 
+        /**
+         * Disables quoting.
+         *
+         * @return this builder
+         */
         public Builder noQuote() {
             this.quote = NO_QUOTE;
             return this;
         }
 
+        /**
+         * Enables escaping, and sets a character for escaping.
+         *
+         * @param escape  a character for escaping
+         * @return this builder
+         */
         public Builder setEscape(final char escape) {
             this.escape = escape;
             return this;
         }
 
+        /**
+         * Disables escaping.
+         *
+         * @return this builder
+         */
         public Builder noEscape() {
             this.escape = NO_ESCAPE;
             return this;
         }
 
+        /**
+         * Sets a string to take place in a column value string tokenized from a quoted field containing an end-of-line.
+         *
+         * @param newline  a newline string that is one of {@code "\r\n"}, {@code "\r"}, or {@code "\n"}.
+         * @return this builder
+         * @throws java.lang.NullPointerException  if {@code newline} is {@code null}
+         * @throws java.lang.IllegalArgumentException  if {@code newline} is invalid
+         */
         public Builder setNewline(final String newline) {
             if (newline == null) {
                 throw new NullPointerException("CsvTokenizer does not accept null as a newline.");
@@ -117,31 +156,66 @@ public class CsvTokenizer {
             throw new IllegalArgumentException("CsvTokenizer does not accept \"" + escapeControl(newline) + "\" as a newline.");
         }
 
+        /**
+         * Enables trimming a space character {@code ' '} only if the field is not quoted.
+         *
+         * @return this builder
+         */
         public Builder enableTrimIfNotQuoted() {
             this.trimIfNotQuoted = true;
             return this;
         }
 
+        /**
+         * Sets to accept "stray quotes" under a special assumption that no delimiter character is included in fields.
+         *
+         * @return this builder
+         */
         public Builder acceptStrayQuotesAssumingNoDelimitersInFields() {
             this.quotesInQuotedFields = QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS;
             return this;
         }
 
+        /**
+         * Sets the maximum length of quoted fields.
+         *
+         * @param maxQuotedFieldLength  the maximum length of quoted fields
+         * @return this builder
+         */
         public Builder setMaxQuotedFieldLength(final long maxQuotedFieldLength) {
             this.maxQuotedFieldLength = maxQuotedFieldLength;
             return this;
         }
 
+        /**
+         * Sets a marker string to indicate that a line is commented-out.
+         *
+         * @param commentLineMarker  a marker string to indicate that a line is commented-out (ex. {@code "#"}, {@code "//"})
+         * @return this builder
+         */
         public Builder setCommentLineMarker(final String commentLineMarker) {
             this.commentLineMarker = commentLineMarker;
             return this;
         }
 
+        /**
+         * Sets a special string in the CSV that is considered as {@code null}.
+         *
+         * @param nullString  a special string in the CSV that is considered as {@code null} (ex. {@code "NULL"})
+         * @return this builder
+         */
         public Builder setNullString(final String nullString) {
             this.nullString = nullString;
             return this;
         }
 
+        /**
+         * Builds a {@link CsvTokenizer} instancefrom this builder, with iteration of strings as comma-separated values (CSV).
+         *
+         * @param iterator  iteration of strings as comma-separated values (CSV)
+         * @return a new {@link CsvTokenizer} instance
+         * @throws java.lang.IllegalStateException  if the builder is configured with an invalid combination
+         */
         public CsvTokenizer build(final Iterator<String> iterator) {
             if (this.trimIfNotQuoted && this.quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_ONLY_RFC4180_ESCAPED) {
                 // The combination makes some syntax very ambiguous such as:
@@ -176,14 +250,35 @@ public class CsvTokenizer {
         private String nullString;
     }
 
+    /**
+     * Creates a builder instance for {@link CsvTokenizer}.
+     *
+     * @param delimiter  a mandatory column delimiter (ex. {@code ","} for CSV, {@code "\t"} for TSV)
+     * @return a builder instance
+     * @throws java.lang.NullPointerException  if {@code delimiter} is {@code null}
+     * @throws java.lang.IllegalArgumentException  if {@code delimiter} is empty
+     */
     public static Builder builder(final String delimiter) {
         return new Builder(delimiter);
     }
 
+    /**
+     * Returns the line number where the tokenizer is currently on tokenizing.
+     *
+     * @return the line number where the tokenizer is currently on tokenizing
+     */
     public long getCurrentLineNumber() {
         return this.lineNumber;
     }
 
+    /**
+     * Skips a line considered as a "header line", where the tokenizer is currently on tokenizing at.
+     *
+     * <p>Note that this method does not check the line is really a "header line". It just assumes
+     * that the line is a header line, and skips a line unconditionally.
+     *
+     * @return {@code false} if the tokenizer observes no any more lines. {@code true} otherwise.
+     */
     public boolean skipHeaderLine() {
         if (!this.iterator.hasNext()) {
             return false;
@@ -193,7 +288,14 @@ public class CsvTokenizer {
         return true;
     }
 
-    // returns skipped line
+    /**
+     * Skips a line, where the tokenizer is currently on tokenizing at.
+     *
+     * <p>If the tokenizer is in the "quoted" state with newline(s), it skips only the first line
+     * in the quote, and then unreads following lines.
+     *
+     * @return the skipped line
+     */
     public String skipCurrentLine() {
         final String skippedLine;
         if (this.quotedValueLines.isEmpty()) {
@@ -213,11 +315,23 @@ public class CsvTokenizer {
         return skippedLine;
     }
 
-    // used by guess-csv
+    /**
+     * Moves the tokenizing cursor forward to the next record, with skipping empty lines.
+     *
+     * @return {@code true} if the tokenizer still has a line to read
+     * @throws RecordHasUnexpectedTrailingColumnException  if called while the line has not reached at an end-of-line yet
+     */
     public boolean nextRecord() {
         return this.nextRecord(true);
     }
 
+    /**
+     * Moves the tokenizing cursor forward to the next record.
+     *
+     * @param skipEmptyLine  {@code true} to skip empty lines
+     * @return {@code true} if the tokenizer still has a line to read
+     * @throws RecordHasUnexpectedTrailingColumnException  if called while the line has not reached at an end-of-line yet
+     */
     public boolean nextRecord(final boolean skipEmptyLine) {
         // If at the end of record, read the next line and initialize the state
         if (this.recordState != RecordState.END) {
@@ -254,10 +368,24 @@ public class CsvTokenizer {
         }
     }
 
+    /**
+     * Checks if the line has a remaining column to read.
+     *
+     * @return {@code true} if the line has a remaining column
+     */
     public boolean hasNextColumn() {
         return this.recordState == RecordState.NOT_END;
     }
 
+    /**
+     * Reads the next column tokenized, and moves the tokenizing cursor forward.
+     *
+     * @return the tokenized column as a {@link java.lang.String}
+     * @throws EndOfFileInQuotedFieldException  if the tokenizer reaches at the end-of-file while in the "quoted" state
+     * @throws InvalidCharacterAfterQuoteException  if the tokenizer encounters an invalid character next to a quoted field
+     * @throws QuotedFieldLengthLimitExceededException  if the tokenizer encounters too long a quoted field
+     * @throws RecordDoesNotHaveExpectedColumnException  if called while the line has already reached at an end-of-line
+     */
     public String nextColumn() {
         if (!this.hasNextColumn()) {
             throw new RecordDoesNotHaveExpectedColumnException();
@@ -483,6 +611,21 @@ public class CsvTokenizer {
         }
     }
 
+    /**
+     * Reads the next column tokenized, with {@code nullString} considered, and moves the tokenizing cursor forward.
+     *
+     * <p>If the tokenizer is configured with {@code nullString}, it returns {@code null} for a column that matches
+     * {@code nullString}.
+     *
+     * <p>If the tokenizer is not configured with {@code nullString}, it returns an empty string {@code ""} for a
+     * quoted field, or {@code null} otherwise.
+     *
+     * @return the tokenized column as a {@link java.lang.String}
+     * @throws EndOfFileInQuotedFieldException  if the tokenizer reaches at the end-of-file while in the "quoted" state
+     * @throws InvalidCharacterAfterQuoteException  if the tokenizer encounters an invalid character next to a quoted field
+     * @throws QuotedFieldLengthLimitExceededException  if the tokenizer encounters too long a quoted field
+     * @throws RecordDoesNotHaveExpectedColumnException  if called while the line has already reached at an end-of-line
+     */
     public String nextColumnOrNull() {
         final String v = this.nextColumn();
         if (this.nullString == null) {
@@ -504,6 +647,11 @@ public class CsvTokenizer {
         }
     }
 
+    /**
+     * Checks if the last column was a quoted column.
+     *
+     * @return {@code true} if the last column was a quoted column
+     */
     public boolean wasQuotedColumn() {
         return this.wasQuotedColumn;
     }
