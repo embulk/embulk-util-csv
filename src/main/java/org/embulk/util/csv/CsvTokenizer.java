@@ -761,8 +761,8 @@ public class CsvTokenizer {
         }).collect(Collectors.joining());
     }
 
-    static final char NO_QUOTE = '\0';
-    static final char NO_ESCAPE = '\0';
+    public static final char NO_QUOTE = '\0';
+    public static final char NO_ESCAPE = '\0';
 
     private static final char END_OF_LINE = '\0';
 
