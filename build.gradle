@@ -34,7 +34,6 @@ java {
 
 dependencies {
     testImplementation "junit:junit:4.13.2"
-    testImplementation "org.embulk:embulk-api:0.10.33"
     testImplementation "org.embulk:embulk-spi:0.10.44"
     testImplementation "org.embulk:embulk-core:0.10.33"
     testImplementation "org.embulk:embulk-deps:0.10.33"
