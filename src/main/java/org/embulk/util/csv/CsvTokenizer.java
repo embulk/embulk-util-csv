@@ -94,6 +94,17 @@ public class CsvTokenizer {
         }
 
         /**
+         * Returns the character for quoting.
+         *
+         * @return the character for quoting
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public char peekQuote() {
+            return this.quote;
+        }
+
+        /**
          * Enables quoting, and sets a character for quoting.
          *
          * @param quote  a character for quoting
@@ -112,6 +123,17 @@ public class CsvTokenizer {
         public Builder noQuote() {
             this.quote = NO_QUOTE;
             return this;
+        }
+
+        /**
+         * Returns the character for escaping.
+         *
+         * @return the character for escaping
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public char peekEscape() {
+            return this.escape;
         }
 
         /**
@@ -136,6 +158,17 @@ public class CsvTokenizer {
         }
 
         /**
+         * Returns the string to take place in a column value string tokenized from a quoted field containing an end-of-line.
+         *
+         * @return the string to take place in a column value string tokenized from a quoted field containing an end-of-line
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public String peekNewline() {
+            return this.newline;
+        }
+
+        /**
          * Sets a string to take place in a column value string tokenized from a quoted field containing an end-of-line.
          *
          * @param newline  a newline string that is one of {@code "\r\n"}, {@code "\r"}, or {@code "\n"}.
@@ -157,6 +190,17 @@ public class CsvTokenizer {
         }
 
         /**
+         * Returns {@code true} if enabled to trim a space character {@code ' '} only if the field is not quoted, or {@code false} otherwise.
+         *
+         * @return {@code true} if enabled to trim a space character {@code ' '} only if the field is not quoted, or {@code false} otherwise
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public boolean isEnabledTrimIfNotQuoted() {
+            return this.trimIfNotQuoted;
+        }
+
+        /**
          * Enables trimming a space character {@code ' '} only if the field is not quoted.
          *
          * @return this builder
@@ -167,6 +211,17 @@ public class CsvTokenizer {
         }
 
         /**
+         * Returns {@code true} if it accepts "stray quotes" under a special assumption that no delimiter character is included in fields, or {@code false} otherwise.
+         *
+         * @return {@code true} if it accepts "stray quotes" under a special assumption that no delimiter character is included in fields, or {@code false} otherwise
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public boolean isAcceptingStrayQuotesAssumingNoDelimitersInFields() {
+            return this.quotesInQuotedFields == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS;
+        }
+
+        /**
          * Sets to accept "stray quotes" under a special assumption that no delimiter character is included in fields.
          *
          * @return this builder
@@ -174,6 +229,17 @@ public class CsvTokenizer {
         public Builder acceptStrayQuotesAssumingNoDelimitersInFields() {
             this.quotesInQuotedFields = QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS;
             return this;
+        }
+
+        /**
+         * Returns the maximum length of quoted fields.
+         *
+         * @return the maximum length of quoted fields
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public long peekMaxQuotedFieldLength() {
+            return this.maxQuotedFieldLength;
         }
 
         /**
@@ -188,6 +254,17 @@ public class CsvTokenizer {
         }
 
         /**
+         * Returns the marker string to indicate that a line is commented-out.
+         *
+         * @return the marker string to indicate that a line is commented-out
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public String peekCommentLineMarker() {
+            return this.commentLineMarker;
+        }
+
+        /**
          * Sets a marker string to indicate that a line is commented-out.
          *
          * @param commentLineMarker  a marker string to indicate that a line is commented-out (ex. {@code "#"}, {@code "//"})
@@ -196,6 +273,17 @@ public class CsvTokenizer {
         public Builder setCommentLineMarker(final String commentLineMarker) {
             this.commentLineMarker = commentLineMarker;
             return this;
+        }
+
+        /**
+         * Returns the special string in the CSV that is considered as {@code null}.
+         *
+         * @return the special string in the CSV that is considered as {@code null}
+         * @deprecated Use this method only for purpose of testing. No guarantees to be maintained.
+         */
+        @Deprecated
+        public String peekNullString() {
+            return this.nullString;
         }
 
         /**
