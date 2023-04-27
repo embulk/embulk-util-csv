@@ -10,7 +10,7 @@ repositories {
 }
 
 group = "org.embulk"
-version = "0.2.3-SNAPSHOT"
+version = "0.2.3"
 description = "CSV utility for Embulk plugins."
 
 configurations {
