@@ -49,7 +49,7 @@ public class TestCsvTokenizer {
         return new ListFileInput(Arrays.asList(buffers));
     }
 
-    private static FileInput newFileInputFromText(final String newline, final String text) {
+    private static FileInput newFileInputFromText(final String text) {
         return new ListFileInput(
                 Arrays.asList(Arrays.asList(
                         BufferImpl.wrap(text.getBytes(StandardCharsets.UTF_8)))));
@@ -159,7 +159,7 @@ public class TestCsvTokenizer {
         assertEquals(expectedRecords(2,
                         "aaa", "bbb",
                         "ccc", "ddd"),
-                parse(builder, 2, newFileInputFromText("\n",
+                parse(builder, 2, newFileInputFromText(
                         "aaa,bbb\nccc,ddd")));
     }
 
@@ -204,7 +204,7 @@ public class TestCsvTokenizer {
                         "a\na\na", "b,bb",
                         "cc\"c", "\"ddd",
                         null, ""),
-                parse(builder, 2, newFileInputFromText("\r\n",
+                parse(builder, 2, newFileInputFromText(
                         "\n\"a\na\na\",\"b,bb\"\n\n\"cc\"\"c\",\"\"\"ddd\"\n,\"\"\n")));
     }
 
@@ -215,7 +215,7 @@ public class TestCsvTokenizer {
                         "a\"aa", "b,bb\"",
                         "cc\"c", "\"ddd",
                         null, ""),
-                parse(builder, 2, newFileInputFromText("\r\n",
+                parse(builder, 2, newFileInputFromText(
                     "\n\"a\\\"aa\",\"b,bb\\\"\"\n\n\"cc\"\"c\",\"\"\"ddd\"\n,\"\"\n")));
     }
 
@@ -238,7 +238,7 @@ public class TestCsvTokenizer {
         assertEquals(expectedRecords(2,
                     "  aaa  ", "  b cd ",
                     "  ccc","dd d \n "), // quoted values are not changed
-                parse(builder, 2, newFileInputFromText("\n",
+                parse(builder, 2, newFileInputFromText(
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
 
         final CsvTokenizer.Builder builder2 = initialBuilder();
@@ -247,7 +247,7 @@ public class TestCsvTokenizer {
         assertEquals(expectedRecords(2,
                     "aaa", "b cd",
                     "  ccc","dd d \n "), // quoted values are not changed
-                parse(builder2, 2, newFileInputFromText("\n",
+                parse(builder2, 2, newFileInputFromText(
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
     }
 
