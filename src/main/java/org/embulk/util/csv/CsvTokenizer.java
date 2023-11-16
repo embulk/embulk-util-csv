@@ -441,6 +441,7 @@ public class CsvTokenizer {
                 this.line = this.unreadLines.removeFirst();
             } else {
                 if (!this.iterator.hasNext()) {
+                    this.line = null;
                     return false;
                 }
                 this.line = this.iterator.next();
