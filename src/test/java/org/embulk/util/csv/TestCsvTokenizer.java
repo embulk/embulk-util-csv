@@ -17,6 +17,7 @@
 package org.embulk.util.csv;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -399,6 +400,34 @@ public class TestCsvTokenizer {
         assertTrue(tokenizer.nextRecord());
         assertEquals("v6", tokenizer.nextColumn());
         assertEquals("v7", tokenizer.nextColumn());
+    }
+
+    @Test
+    public void testAfterEndOfFileInQuotedFieldException() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
+        final FileInput input = newFileInputFromText("v1,v2\nv3,\"v4");
+        final LineDecoder decoder = LineDecoder.of(input, StandardCharsets.UTF_8, null);
+        decoder.nextFile();
+        final CsvTokenizer tokenizer = builder.build(decoder.iterator());
+        assertTrue(tokenizer.nextRecord());
+        assertEquals("v1", tokenizer.nextColumn());
+        assertEquals("v2", tokenizer.nextColumn());
+        assertTrue(tokenizer.nextRecord());
+        assertEquals("v3", tokenizer.nextColumn());
+
+        boolean exception = false;
+        try {
+            tokenizer.nextColumn();
+        } catch (final Exception ex) {
+            assertTrue(ex instanceof EndOfFileInQuotedFieldException);
+            exception = true;
+        }
+        assertTrue(exception);
+
+        assertEquals("v3,\"v4", tokenizer.skipCurrentLine());
+
+        // tokenizer should no longer have next record after "end-of-file in quoted field".
+        assertFalse(tokenizer.nextRecord());
     }
 
     /*
