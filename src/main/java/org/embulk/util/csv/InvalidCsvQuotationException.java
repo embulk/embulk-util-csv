@@ -18,6 +18,8 @@ package org.embulk.util.csv;
 
 /**
  * Thrown when {@link CsvTokenizer} encounters an invalid format while parsing a quoted field.
+ *
+ * <p>It corresponds to {@code CsvTokenizer.InvalidValueException} in the original {@code embulk-standards}.
  */
 public abstract class InvalidCsvQuotationException extends InvalidCsvFormatException {
     /**

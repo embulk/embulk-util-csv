@@ -17,13 +17,17 @@
 package org.embulk.util.csv;
 
 /**
- * Thrown when {@link CsvTokenizer} encounters an unexpected extra trailing column (i.e. too many columns).
+ * Thrown when {@link CsvTokenizer} encounters too few or too many columns.
+ *
+ * <p>It corresponds to {@code CsvTokenizer.InvalidFormatException} in the original {@code embulk-standards}.
  */
-public class RecordHasUnexpectedTrailingColumnException extends InvalidCsvColumnsException {
+public abstract class InvalidCsvColumnsException extends InvalidCsvFormatException {
     /**
-     * Constructs a {@link RecordHasUnexpectedTrailingColumnException} with its default message.
+     * Constructs an {@link InvalidCsvColumnsException} with the specified detail message.
+     *
+     * @param message  the detail message
      */
-    public RecordHasUnexpectedTrailingColumnException() {
-        super("A record has an unexpected trailing column (i.e. too many columns).");
+    public InvalidCsvColumnsException(final String message) {
+        super(message);
     }
 }
