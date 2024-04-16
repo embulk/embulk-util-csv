@@ -1,6 +1,6 @@
 [versions]
 junit4 = "4.13.2"
-embulk-spi = "0.10.44"
+embulk-spi = "0.11"
 embulk-core = "0.10.44"
 embulk-util-file = "0.1.3"
 embulk-util-text = "0.1.1"
