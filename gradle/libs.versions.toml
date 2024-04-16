@@ -1,0 +1,15 @@
+[versions]
+junit4 = "4.13.2"
+embulk-spi = "0.10.44"
+embulk-core = "0.10.44"
+embulk-util-file = "0.1.3"
+embulk-util-text = "0.1.1"
+
+[libraries]
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+embulk-spi = { group = "org.embulk", name = "embulk-spi", version.ref = "embulk-spi" }
+embulk-core = { group = "org.embulk", name = "embulk-core", version.ref = "embulk-core" }
+embulk-deps = { group = "org.embulk", name = "embulk-deps", version.ref = "embulk-core" }
+embulk-junit4 = { group = "org.embulk", name = "embulk-junit4", version.ref = "embulk-core" }
+embulk-util-file = { group = "org.embulk", name = "embulk-util-file", version.ref = "embulk-util-file" }
+embulk-util-text = { group = "org.embulk", name = "embulk-util-text", version.ref = "embulk-util-text" }
