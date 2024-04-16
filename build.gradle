@@ -33,13 +33,13 @@ java {
 }
 
 dependencies {
-    testImplementation "junit:junit:4.13.2"
-    testImplementation "org.embulk:embulk-spi:0.10.44"
-    testImplementation "org.embulk:embulk-core:0.10.44"
-    testImplementation "org.embulk:embulk-deps:0.10.44"
-    testImplementation "org.embulk:embulk-junit4:0.10.44"
-    testImplementation "org.embulk:embulk-util-file:0.1.3"
-    testImplementation "org.embulk:embulk-util-text:0.1.1"
+    testImplementation libs.junit4
+    testImplementation libs.embulk.spi
+    testImplementation libs.embulk.core
+    testImplementation libs.embulk.deps
+    testImplementation libs.embulk.junit4
+    testImplementation libs.embulk.util.file
+    testImplementation libs.embulk.util.text
 }
 
 javadoc {
