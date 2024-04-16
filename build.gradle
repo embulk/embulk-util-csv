@@ -10,7 +10,7 @@ repositories {
 }
 
 group = "org.embulk"
-version = "0.2.4-SNAPSHOT"
+version = "0.3.0-SNAPSHOT"
 description = "CSV utility for Embulk plugins."
 
 configurations {
@@ -117,7 +117,7 @@ publishing {
                     }
                     developer {
                         name = "Dai MIKURUBE"
-                        email = "dmikurube@treasure-data.com"
+                        email = "dmikurube@acm.org"
                     }
                 }
 
