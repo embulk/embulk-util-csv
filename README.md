@@ -1,5 +1,5 @@
-Embulk Utilities for CSV
-=========================
+CSV utility for Embulk plugins
+===============================
 
 This is a tokenizer of the CSV (comma-separated values) format extracted as a standalone library from [`embulk-parser-csv`](https://github.com/embulk/embulk-standards).
 
