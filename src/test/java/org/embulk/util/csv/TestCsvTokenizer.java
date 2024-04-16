@@ -238,7 +238,7 @@ public class TestCsvTokenizer {
         final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     "  aaa  ", "  b cd ",
-                    "  ccc","dd d \n "), // quoted values are not changed
+                    "  ccc", "dd d \n "), // quoted values are not changed
                 parse(builder, 2, newFileInputFromText(
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
 
@@ -247,7 +247,7 @@ public class TestCsvTokenizer {
         builder2.enableTrimIfNotQuoted();
         assertEquals(expectedRecords(2,
                     "aaa", "b cd",
-                    "  ccc","dd d \n "), // quoted values are not changed
+                    "  ccc", "dd d \n "), // quoted values are not changed
                 parse(builder2, 2, newFileInputFromText(
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
     }
@@ -258,8 +258,8 @@ public class TestCsvTokenizer {
         builder.enableTrimIfNotQuoted();
         assertEquals(expectedRecords(2,
                         "heading1", "heading2",
-                        "trailing1","trailing2",
-                        "trailing\n3","trailing\n4"),
+                        "trailing1", "trailing2",
+                        "trailing\n3", "trailing\n4"),
                 parse(builder, "\n", 2,
                     "  \"heading1\",  \"heading2\"",
                     "\"trailing1\"  ,\"trailing2\"  ",
