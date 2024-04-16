@@ -11,7 +11,7 @@ repositories {
 
 group = "org.embulk"
 version = "0.3.0-SNAPSHOT"
-description = "CSV utility for Embulk plugins."
+description = "CSV utility for Embulk plugins"
 
 configurations {
     compileClasspath.resolutionStrategy.activateDependencyLocking()
@@ -66,6 +66,19 @@ sourcesJar {
 javadocJar {
     metaInf {
         from rootProject.file("LICENSE")
+    }
+}
+
+// A safer and strict alternative to: "dependencies" (and "dependencies --write-locks")
+//
+// This task fails explicitly when the specified dependency is not available.
+// In contrast, "dependencies (--write-locks)" does not fail even when a part the dependencies are unavailable.
+//
+// https://docs.gradle.org/8.7/userguide/dependency_locking.html#generating_and_updating_dependency_locks
+task checkDependencies {
+    notCompatibleWithConfigurationCache("The task \"checkDependencies\" filters configurations at execution time.")
+    doLast {
+        configurations.findAll { it.canBeResolved }.each { it.resolve() }
     }
 }
 
